@@ -1,0 +1,34 @@
+- name: Install rke in one host
+  hosts: rke_cluster
+  become: true
+  become_user: root
+  # serial: "50%"
+  gather_facts: False
+  tasks:
+    - name: Get rke2 install script
+      ansible.builtin.shell: curl -sfL https://get.rke2.io | sh -
+    - name: Create a /etc/rancher/rke2 if it does not exist
+      ansible.builtin.file:
+        path: /etc/rancher/rke2
+        state: directory
+        mode: '0755'
+    - name: Copy config file
+      ansible.builtin.copy:
+        src: "rke2_config/config.yaml"
+        dest: /etc/rancher/rke2/config.yaml
+        backup: yes  
+    - name: Start rke2 service
+      ansible.builtin.systemd_service:
+        state: started
+        name: rke2-server.service
+    - name: Enable rke2-server.service
+      ansible.builtin.systemd_service:
+        name: rke2-server.service
+        enabled: true
+        masked: no
+    - name: Copy kubeconfig from the server to local/bastions host
+      ansible.builtin.fetch:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: ~/.kube
+
+  

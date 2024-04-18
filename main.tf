@@ -15,6 +15,7 @@ module "rke_cluster" {
   vm_vcpu                    = var.rke_vm_vcpu
   vm_host_number             = var.rke_vm_network_cidr_host_number
   vm_network_cidr            = var.rke_vm_network_cidr
+  vm_nameserver              = var.vm_nameserver
   vm_cloudinit_cdrom_storage = var.rke_cloudinit_cdrom_storage
   vm_os_disk_size            = var.rke_vm_os_disk_size
   vm_os_disk_location        = var.rke_vm_os_disk_location
@@ -40,6 +41,7 @@ module "k8s_master" {
   vm_cpu_type                = var.k8s_master_vm_cpu_type
   vm_vcpu                    = var.k8s_master_vm_vcpu
   vm_host_number             = var.k8s_master_vm_network_cidr_host_number
+  vm_nameserver              = var.vm_nameserver
   vm_network_cidr            = var.k8s_master_vm_network_cidr
   vm_cloudinit_cdrom_storage = var.k8s_master_vm_cloudinit_cdrom_storage
   vm_os_disk_size            = var.k8s_master_vm_os_disk_size
@@ -64,6 +66,7 @@ module "k8s_worker" {
   vm_cpu_type                = var.k8s_worker_vm_cpu_type
   vm_vcpu                    = var.k8s_worker_vm_vcpu
   vm_host_number             = var.k8s_worker_vm_network_cidr_host_number
+  vm_nameserver              = var.vm_nameserver
   vm_network_cidr            = var.k8s_worker_vm_network_cidr
   vm_cloudinit_cdrom_storage = var.k8s_worker_vm_cloudinit_cdrom_storage
   vm_os_disk_size            = var.k8s_worker_vm_os_disk_size
@@ -73,70 +76,71 @@ module "k8s_worker" {
   vm_tags                    = var.k8s_worker_tags
 }
 
-# resource "time_sleep" "wait_vm_create" {
-#   depends_on      = [module.rke_cluster, module.k8s_master, module.k8s_worker]
-#   create_duration = "90s"
-# }
+resource "time_sleep" "wait_vm_create" {
+  depends_on      = [module.rke_cluster, module.k8s_master, module.k8s_worker]
+  create_duration = "90s"
+}
 
-# resource "null_resource" "check_ssh_rke_cluster" {
-#   depends_on = [time_sleep.wait_vm_create]
-#   count      = length(module.rke_cluster.vms_info)
-#   connection {
-#     type = "ssh"
-#     user = var.k8s_master_vm_user
-#     host = module.rke_cluster.vms_info[count.index].vm_ip
-#   }
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.rke_cluster.vms_info[count.index].vm_user}@${module.rke_cluster.vms_info[count.index].vm_ip} exit"
-#   }
-# }
+resource "null_resource" "check_ssh_rke_cluster" {
+  depends_on = [time_sleep.wait_vm_create]
+  count      = length(module.rke_cluster.vms_info)
+  connection {
+    type = "ssh"
+    user = var.k8s_master_vm_user
+    host = module.rke_cluster.vms_info[count.index].vm_ip
+  }
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.rke_cluster.vms_info[count.index].vm_user}@${module.rke_cluster.vms_info[count.index].vm_ip} exit"
+  }
+}
 
-# resource "null_resource" "check_ssh_k8s_master" {
-#   depends_on = [time_sleep.wait_vm_create]
-#   count      = length(module.k8s_master.vms_info)
-#   connection {
-#     type = "ssh"
-#     user = var.k8s_master_vm_user
-#     host = module.k8s_master.vms_info[count.index].vm_ip
-#   }
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.k8s_master.vms_info[count.index].vm_user}@${module.k8s_master.vms_info[count.index].vm_ip} exit"
-#   }
-# }
+resource "null_resource" "check_ssh_k8s_master" {
+  depends_on = [time_sleep.wait_vm_create]
+  count      = length(module.k8s_master.vms_info)
+  connection {
+    type = "ssh"
+    user = var.k8s_master_vm_user
+    host = module.k8s_master.vms_info[count.index].vm_ip
+  }
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.k8s_master.vms_info[count.index].vm_user}@${module.k8s_master.vms_info[count.index].vm_ip} exit"
+  }
+}
 
-# resource "null_resource" "check_ssh_k8s_worker" {
-#   depends_on = [time_sleep.wait_vm_create]
-#   count      = length(module.k8s_worker.vms_info)
-#   connection {
-#     type = "ssh"
-#     user = var.k8s_worker_vm_user
-#     host = module.k8s_worker.vms_info[count.index].vm_ip
-#   }
-#   provisioner "local-exec" {
-#     command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.k8s_worker.vms_info[count.index].vm_user}@${module.k8s_worker.vms_info[count.index].vm_ip} exit"
-#   }
-# }
+resource "null_resource" "check_ssh_k8s_worker" {
+  depends_on = [time_sleep.wait_vm_create]
+  count      = length(module.k8s_worker.vms_info)
+  connection {
+    type = "ssh"
+    user = var.k8s_worker_vm_user
+    host = module.k8s_worker.vms_info[count.index].vm_ip
+  }
+  provisioner "local-exec" {
+    command = "ssh -o StrictHostKeyChecking=no -o LogLevel=DEBUG -i ${var.bastion_sshkey_location} ${module.k8s_worker.vms_info[count.index].vm_user}@${module.k8s_worker.vms_info[count.index].vm_ip} exit"
+  }
+}
 
-# resource "local_file" "ansible_inventory" {
-#   depends_on = [null_resource.check_ssh_rke_cluster, null_resource.check_ssh_k8s_master, null_resource.check_ssh_k8s_worker]
-#   filename   = "${path.cwd}/ansible/inventory.yaml"
-#   content = templatefile("${path.cwd}/ansible/inventory.tpl", {
-#     rke_info    = module.rke_cluster.vms_info,
-#     master_info = module.k8s_master.vms_info,
-#     worker_info = module.k8s_worker.vms_info
-#   })
-# }
-# resource "null_resource" "ansible_update_os" {
-#   depends_on = [local_file.ansible_inventory]
-#   provisioner "local-exec" {
-#     working_dir = "${path.cwd}/ansible"
-#     command     = "ansible-playbook -i inventory.yaml update_os.yaml -v"
-#   }
-# }
-# resource "null_resource" "ansible_install_rke" {
-#   depends_on = [null_resource.ansible_update_os]
-#   provisioner "local-exec" {
-#     working_dir = "${path.cwd}/ansible"
-#     command     = "ansible-playbook -i inventory.yaml rke_install.yaml -v"
-#   }
-# }
+resource "local_file" "ansible_inventory" {
+  depends_on = [null_resource.check_ssh_rke_cluster, null_resource.check_ssh_k8s_master, null_resource.check_ssh_k8s_worker]
+  filename   = "${path.cwd}/ansible/inventory.yaml"
+  content = templatefile("${path.cwd}/ansible/inventory.tpl", {
+    rke_info    = module.rke_cluster.vms_info,
+    master_info = module.k8s_master.vms_info,
+    worker_info = module.k8s_worker.vms_info
+  })
+}
+resource "null_resource" "ansible_update_os" {
+  depends_on = [local_file.ansible_inventory]
+  provisioner "local-exec" {
+    working_dir = "${path.cwd}/ansible"
+    command     = "ansible-playbook -i inventory.yaml update_os.yaml -v"
+  }
+}
+
+resource "null_resource" "ansible_install_rke" {
+  depends_on = [null_resource.ansible_update_os]
+  provisioner "local-exec" {
+    working_dir = "${path.cwd}/ansible"
+    command     = "ansible-playbook -i inventory.yaml rke_install.yaml -v"
+  }
+}

@@ -9,6 +9,10 @@ terraform {
       source  = "ansible/ansible"
       version = "1.2.0"
     }
+    rancher2 = {
+      source  = "rancher/rancher2"
+      version = "4.1.0"
+    }
     local = {
       source  = "hashicorp/local"
       version = "2.5.1"

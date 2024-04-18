@@ -1,0 +1,61 @@
+- name: prepare for hosts
+  hosts: all
+  become: true
+  become_user: root
+  # serial: "50%"
+  gather_facts: False
+  tasks:
+    - name: cloud-init status Check
+      command: cloud-init status --wait
+      changed_when: false
+
+    - name: Check if Python 3 is installed
+      ansible.builtin.raw: python3 --version
+      register: python_check
+      ignore_errors: true
+
+    - name: Install Python 3 if not installed
+      ansible.builtin.raw: sudo apt update && sudo apt install -y python3
+      when: python_check.rc != 0
+
+    - name: Update and upgrade apt packages
+      ansible.builtin.apt:
+        upgrade: full
+        update_cache: yes
+        cache_valid_time: 86400 #One day
+
+    - name: install bc sudo apt install bc -y
+      ansible.builtin.apt:
+        name:
+          - bc
+        state: present
+        
+    - name: Disable swap for current session
+      ansible.builtin.command:
+        cmd: 'swapoff -a'
+
+    - name: Disable swap permanently, persist reboots
+      replace:
+        path: /etc/fstab
+        regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$' #'^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+        replace: '#\1\2\3swap\4'
+        backup: yes
+
+    - name: transfer sysctl script
+      ansible.builtin.copy:
+        src: scripts/sysctl_config.sh
+        dest: /tmp/sysctl_config.sh
+        mode: "0755"
+
+    - name: Run sysctl script
+      ansible.builtin.shell:
+        cmd: bash sysctl_config.sh
+        chdir: /tmp
+        
+    - name: Reboot hosts
+      ansible.builtin.reboot:
+        msg: 'Reboot host for complete update in 30s'
+        connect_timeout: 30
+        post_reboot_delay: 10
+        reboot_timeout: 90
+        test_command: 'echo Done!'

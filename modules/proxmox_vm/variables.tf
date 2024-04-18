@@ -77,7 +77,10 @@ variable "vm_network_cidr" {
   type        = string
   description = "CIDR of VMs network"
 }
-
+variable "vm_nameserver" {
+  description = "DNS server ipaddress"
+  type = string
+}
 # VMs disk
 variable "vm_cloudinit_cdrom_storage" {
   description = "Set the storage location for the cloud-init drive"

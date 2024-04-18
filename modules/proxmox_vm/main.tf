@@ -45,6 +45,7 @@ resource "proxmox_vm_qemu" "cluster" {
     model    = var.vm_network_bridge_model
     firewall = false
   }
+  nameserver = var.vm_nameserver
   ipconfig0 = "ip=${cidrhost(var.vm_network_cidr, var.vm_host_number + count.index)}${local.vm_net_subnet_mask},gw=${local.vm_net_default_gw}"
 
   lifecycle {

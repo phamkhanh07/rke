@@ -19,6 +19,12 @@ variable "bastion_sshkey_location" {
   sensitive   = true
 }
 
+variable "vm_nameserver" {
+  description = "DNS server ipaddress"
+  type        = string
+  default     = "192.158.1.101"
+}
+
 # rke for rancher
 # rke cluster variables
 variable "rke_cluster_name" {
@@ -105,6 +111,7 @@ variable "rke_vm_network_cidr_host_number" {
   description = "The host number VMs in CIDR"
   type        = number
 }
+
 variable "rke_cloudinit_cdrom_storage" {
   type = string
 }
